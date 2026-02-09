@@ -1,0 +1,598 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path'); // Добавьте этот импорт
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public'))); // Используйте path.join
+
+// ✅ ВАЖНО: Добавьте эти маршруты ДО API маршрутов
+// Маршруты для HTML страниц
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/doctors', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'doctors.html'));
+});
+
+app.get('/appointments', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'appointments.html'));
+});
+
+app.get('/profile', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
+app.get('/book', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'book.html'));
+});
+
+// MongoDB подключение
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/medapp';
+let db;
+
+// Подключение к MongoDB
+async function connectToDatabase() {
+    try {
+        const client = await MongoClient.connect(MONGODB_URI);
+        db = client.db();
+        console.log('✅ Подключение к MongoDB установлено');
+        
+        // Инициализация Mongoose для моделей
+        await mongoose.connect(MONGODB_URI);
+        console.log('✅ Mongoose подключен');
+        
+        return db;
+    } catch (error) {
+        console.error('❌ Ошибка подключения к MongoDB:', error);
+        process.exit(1);
+    }
+}
+
+// Модели Mongoose
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    fullName: { type: String, required: true },
+    phone: { type: String },
+    birthDate: { type: Date },
+    role: { type: String, enum: ['patient', 'doctor', 'admin'], default: 'patient' },
+    specialization: { type: String }, // Для врачей
+    createdAt: { type: Date, default: Date.now }
+});
+
+const appointmentSchema = new mongoose.Schema({
+    doctorId: { type: String, required: true }, // Сохраняем как строку (ObjectId из коллекции doctors)
+    patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    appointmentDate: { type: Date, required: true },
+    reason: { type: String, required: true },
+    symptoms: [{ type: String }],
+    diagnosis: { type: String },
+    prescription: { type: String },
+    notes: { type: String },
+    duration: { type: Number, default: 30 }, // в минутах
+    status: { type: String, enum: ['scheduled', 'confirmed', 'completed', 'cancelled'], default: 'scheduled' },
+    createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+const Appointment = mongoose.model('Appointment', appointmentSchema);
+
+// Middleware для аутентификации
+const auth = async (req, res, next) => {
+    try {
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Требуется авторизация' });
+        }
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        const user = await User.findById(decoded.userId);
+        
+        if (!user) {
+            return res.status(401).json({ message: 'Пользователь не найден' });
+        }
+        
+        req.user = { userId: user._id, role: user.role };
+        next();
+    } catch (error) {
+        console.error('Auth error:', error);
+        res.status(401).json({ message: 'Неверный токен' });
+    }
+};
+
+// Маршруты API
+const router = express.Router();
+
+// ==================== ДЕБАГ И ПРОВЕРКА ====================
+router.get('/api/debug', async (req, res) => {
+    try {
+        const doctorsCount = await db.collection('doctors').countDocuments();
+        const appointmentsCount = await Appointment.countDocuments();
+        const usersCount = await User.countDocuments();
+        
+        res.json({
+            status: 'ok',
+            collections: {
+                doctors: doctorsCount,
+                appointments: appointmentsCount,
+                users: usersCount
+            },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: error.message 
+        });
+    }
+});
+
+// ==================== АУТЕНТИФИКАЦИЯ ====================
+router.post('/api/auth/register', async (req, res) => {
+    try {
+        console.log('Регистрация нового пользователя:', req.body);
+        
+        const { username, email, password, fullName, phone, birthDate } = req.body;
+        
+        // Проверка существования пользователя
+        const existingUser = await User.findOne({ 
+            $or: [{ email }, { username }] 
+        });
+        
+        if (existingUser) {
+            return res.status(400).json({ 
+                message: 'Пользователь с таким email или именем уже существует' 
+            });
+        }
+        
+        // Хэширование пароля
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Создание пользователя
+        const user = new User({
+            username,
+            email,
+            password: hashedPassword,
+            fullName,
+            phone,
+            birthDate,
+            role: 'patient'
+        });
+        
+        await user.save();
+        
+        // Создание JWT токена
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '7d' }
+        );
+        
+        res.status(201).json({
+            message: 'Регистрация успешна',
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+                phone: user.phone,
+                birthDate: user.birthDate
+            }
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ 
+            message: 'Ошибка при регистрации',
+            error: error.message 
+        });
+    }
+});
+// В server.js добавить:
+router.get('/api/admin/appointments', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+  // Логика для админа
+});
+
+router.get('/api/doctor/appointments', auth, async (req, res) => {
+  if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Forbidden' });
+  // Логика для врача
+});
+
+router.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // Поиск пользователя
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ message: 'Неверный email или пароль' });
+        }
+        
+        // Проверка пароля
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Неверный email или пароль' });
+        }
+        
+        // Создание JWT токена
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '7d' }
+        );
+        
+        res.json({
+            message: 'Вход выполнен успешно',
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+                phone: user.phone,
+                birthDate: user.birthDate
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ 
+            message: 'Ошибка при входе',
+            error: error.message 
+        });
+    }
+});
+const { sendAppointmentConfirmation } = require('./services/email.service');
+// ==================== ВРАЧИ (из коллекции doctors) ====================
+router.get('/api/doctors', async (req, res) => {
+    try {
+        console.log('📋 Запрос на получение врачей из коллекции doctors...');
+        
+        const doctors = await db.collection('doctors').find({}).toArray();
+        
+        console.log(`✅ Найдено ${doctors.length} врачей в коллекции doctors`);
+        
+        if (doctors.length === 0) {
+            console.log('⚠️  В коллекции doctors нет записей!');
+            return res.json([]);
+        }
+        
+        // Преобразуем для фронтенда
+        const formattedDoctors = doctors.map(doctor => ({
+            _id: doctor._id.toString(),
+            fullName: doctor.name || doctor.fullName || 'Неизвестный врач',
+            specialization: doctor.specialization || 'Не указано',
+            email: doctor.email || 'email@example.com',
+            phone: doctor.phone || '+7 (999) 999-99-99',
+            experience: doctor.experience || 0,
+            education: doctor.education || 'Не указано',
+            rating: doctor.rating || 0,
+            photo: doctor.photo || '',
+            is_available: doctor.is_available !== false,
+            description: doctor.description || '',
+            price: doctor.price || 0,
+            languages: doctor.languages || [],
+            createdAt: doctor.created_at || doctor.createdAt || new Date()
+        }));
+        
+        res.json(formattedDoctors);
+    } catch (error) {
+        console.error('❌ Ошибка при получении врачей:', error);
+        res.status(500).json({ 
+            message: 'Ошибка сервера при получении списка врачей',
+            error: error.message 
+        });
+    }
+});
+
+router.get('/api/doctors/:id', async (req, res) => {
+    try {
+        const doctor = await db.collection('doctors').findOne({ 
+            _id: new ObjectId(req.params.id)
+        });
+        
+        if (!doctor) {
+            return res.status(404).json({ message: 'Врач не найден' });
+        }
+        
+        // Форматируем для фронтенда
+        const formattedDoctor = {
+            _id: doctor._id.toString(),
+            fullName: doctor.name || doctor.fullName || 'Неизвестный врач',
+            specialization: doctor.specialization || 'Не указано',
+            email: doctor.email || 'email@example.com',
+            phone: doctor.phone || '+7 (999) 999-99-99',
+            experience: doctor.experience || 0,
+            education: doctor.education || 'Не указано',
+            rating: doctor.rating || 0,
+            photo: doctor.photo || '',
+            is_available: doctor.is_available !== false,
+            description: doctor.description || '',
+            price: doctor.price || 0,
+            languages: doctor.languages || [],
+            createdAt: doctor.created_at || doctor.createdAt || new Date()
+        };
+        
+        res.json(formattedDoctor);
+    } catch (error) {
+        console.error('❌ Ошибка при получении врача:', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+// ==================== ЗАПИСИ ====================
+router.get('/api/appointments', auth, async (req, res) => {
+    try {
+        console.log('📅 Получение записей для пользователя:', req.user.userId);
+        
+        // Находим записи пользователя
+        const appointments = await Appointment.find({ 
+            patientId: req.user.userId 
+        }).sort({ appointmentDate: -1 });
+        
+        console.log(`✅ Найдено ${appointments.length} записей`);
+        
+        // Получаем информацию о врачах для каждой записи
+        const appointmentsWithDoctorInfo = await Promise.all(
+            appointments.map(async (appointment) => {
+                let doctorInfo = null;
+                
+                if (appointment.doctorId) {
+                    try {
+                        const doctor = await db.collection('doctors').findOne({
+                            _id: new ObjectId(appointment.doctorId)
+                        });
+                        
+                        if (doctor) {
+                            doctorInfo = {
+                                _id: doctor._id.toString(),
+                                fullName: doctor.name || 'Неизвестный врач',
+                                specialization: doctor.specialization || 'Не указано'
+                            };
+                        } else {
+                            doctorInfo = {
+                                _id: appointment.doctorId,
+                                fullName: 'Врач не найден',
+                                specialization: 'Неизвестно'
+                            };
+                        }
+                    } catch (err) {
+                        console.log('⚠️  Ошибка при получении данных врача:', err.message);
+                        doctorInfo = {
+                            _id: appointment.doctorId,
+                            fullName: 'Ошибка загрузки',
+                            specialization: 'Неизвестно'
+                        };
+                    }
+                }
+                
+                // Получаем информацию о пациенте
+                const patient = await User.findById(appointment.patientId)
+                    .select('fullName email phone');
+                
+                return {
+                    _id: appointment._id.toString(),
+                    doctorId: doctorInfo,
+                    patientId: patient ? {
+                        _id: patient._id.toString(),
+                        fullName: patient.fullName,
+                        email: patient.email,
+                        phone: patient.phone
+                    } : null,
+                    appointmentDate: appointment.appointmentDate,
+                    reason: appointment.reason,
+                    symptoms: appointment.symptoms || [],
+                    diagnosis: appointment.diagnosis,
+                    prescription: appointment.prescription,
+                    notes: appointment.notes,
+                    duration: appointment.duration || 30,
+                    status: appointment.status,
+                    createdAt: appointment.createdAt
+                };
+            })
+        );
+        
+        res.json(appointmentsWithDoctorInfo);
+    } catch (error) {
+        console.error('❌ Ошибка при получении записей:', error);
+        res.status(500).json({ 
+            message: 'Ошибка сервера при получении записей',
+            error: error.message 
+        });
+    }
+});
+
+router.post('/api/appointments', auth, async (req, res) => {
+    try {
+        const { doctorId, appointmentDate, reason, symptoms, duration } = req.body;
+        
+        console.log('📝 Создание записи:', { doctorId, appointmentDate, reason });
+        
+        // Проверяем, существует ли врач в коллекции doctors
+        const doctor = await db.collection('doctors').findOne({
+            _id: new ObjectId(doctorId)
+        });
+        
+        if (!doctor) {
+            return res.status(404).json({ message: 'Врач не найден' });
+        }
+        
+        // Проверяем, доступен ли врач
+        if (doctor.is_available === false) {
+            return res.status(400).json({ message: 'Врач временно недоступен для записи' });
+        }
+        
+        // Проверяем, не занято ли время
+        const existingAppointment = await Appointment.findOne({
+            doctorId: doctorId,
+            appointmentDate: new Date(appointmentDate),
+            status: { $ne: 'cancelled' }
+        });
+        
+        if (existingAppointment) {
+            return res.status(400).json({ message: 'Это время уже занято' });
+        }
+        
+        // Создаем запись
+        const appointment = new Appointment({
+            doctorId: doctorId,
+            patientId: req.user.userId,
+            appointmentDate: new Date(appointmentDate),
+            reason: reason,
+            symptoms: symptoms ? symptoms.split(',').map(s => s.trim()) : [],
+            duration: duration || 30,
+            status: 'scheduled',
+            createdAt: new Date()
+        });
+        
+        await appointment.save();
+        
+        // Получаем информацию о враче для ответа
+        const doctorInfo = {
+            _id: doctor._id.toString(),
+            fullName: doctor.name,
+            specialization: doctor.specialization
+        };
+        
+        // Получаем информацию о пациенте
+        const patient = await User.findById(req.user.userId)
+            .select('fullName email phone');
+        
+        const appointmentResponse = {
+            _id: appointment._id.toString(),
+            doctorId: doctorInfo,
+            patientId: patient ? {
+                _id: patient._id.toString(),
+                fullName: patient.fullName,
+                email: patient.email,
+                phone: patient.phone
+            } : null,
+            appointmentDate: appointment.appointmentDate,
+            reason: appointment.reason,
+            symptoms: appointment.symptoms,
+            duration: appointment.duration,
+            status: appointment.status,
+            createdAt: appointment.createdAt
+        };
+        
+        res.status(201).json({
+            message: 'Запись успешно создана',
+            appointment: appointmentResponse
+        });
+    } catch (error) {
+        console.error('❌ Ошибка при создании записи:', error);
+        res.status(500).json({ 
+            message: 'Ошибка сервера при создании записи',
+            error: error.message 
+        });
+    }
+});
+
+// ==================== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ ====================
+router.get('/api/users/profile', auth, async (req, res) => {
+    try {
+        console.log('👤 Получение профиля для пользователя:', req.user.userId);
+        
+        const user = await User.findById(req.user.userId)
+            .select('-password -__v');
+        
+        if (!user) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
+        
+        // Получаем статистику пользователя
+        const appointmentsCount = await Appointment.countDocuments({ 
+            patientId: req.user.userId 
+        });
+        
+        const completedCount = await Appointment.countDocuments({ 
+            patientId: req.user.userId,
+            status: 'completed'
+        });
+        
+        const upcomingCount = await Appointment.countDocuments({ 
+            patientId: req.user.userId,
+            appointmentDate: { $gt: new Date() },
+            status: { $ne: 'cancelled' }
+        });
+        
+        // Получаем уникальных врачей
+        const appointments = await Appointment.find({ patientId: req.user.userId });
+        const doctorIds = [...new Set(appointments.map(a => a.doctorId))];
+        const uniqueDoctorsCount = doctorIds.length;
+        
+        const userWithStats = {
+            ...user.toObject(),
+            stats: {
+                totalAppointments: appointmentsCount,
+                completedAppointments: completedCount,
+                upcomingAppointments: upcomingCount,
+                doctorsVisited: uniqueDoctorsCount
+            }
+        };
+        
+        console.log('✅ Профиль загружен со статистикой');
+        res.json(userWithStats);
+    } catch (error) {
+        console.error('❌ Ошибка при получении профиля:', error);
+        res.status(500).json({ 
+            message: 'Ошибка сервера при получении профиля',
+            error: error.message 
+        });
+    }
+});
+
+// Подключаем маршруты API
+app.use('/', router);
+
+// ✅ ВАЖНО: Добавьте обработчик 404 в конце
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+// Запуск сервера
+async function startServer() {
+    await connectToDatabase();
+    
+    app.listen(PORT, () => {
+        console.log(`🚀 Сервер запущен на порту ${PORT}`);
+        console.log(`🌐 Доступные страницы:`);
+        console.log(`   http://localhost:${PORT}/ - Главная`);
+        console.log(`   http://localhost:${PORT}/register - Регистрация`);
+        console.log(`   http://localhost:${PORT}/login - Вход`);
+        console.log(`   http://localhost:${PORT}/dashboard - Панель управления`);
+        console.log(`   http://localhost:${PORT}/doctors - Врачи`);
+        console.log(`   http://localhost:${PORT}/appointments - Записи`);
+        console.log(`   http://localhost:${PORT}/profile - Профиль`);
+        console.log(`   http://localhost:${PORT}/book - Новая запись`);
+    });
+}
+
+startServer();
