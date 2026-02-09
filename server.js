@@ -269,7 +269,6 @@ router.post('/api/auth/login', async (req, res) => {
         });
     }
 });
-const { sendAppointmentConfirmation } = require('./services/email.service');
 // ==================== ВРАЧИ (из коллекции doctors) ====================
 router.get('/api/doctors', async (req, res) => {
     try {
