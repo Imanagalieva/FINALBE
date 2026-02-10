@@ -221,6 +221,42 @@ const auth = async (req, res, next) => {
     }
 };
 
+// Добавьте этот код ПОСЛЕ существующей функции auth
+const authorize = (...allowedRoles) => {
+    return async (req, res, next) => {
+        try {
+            const token = req.header('Authorization')?.replace('Bearer ', '');
+            
+            if (!token) {
+                return res.status(401).json({ message: 'Требуется авторизация' });
+            }
+            
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            const user = await User.findById(decoded.userId);
+            
+            if (!user) {
+                return res.status(401).json({ message: 'Пользователь не найден' });
+            }
+            
+            // Проверяем, есть ли у пользователя нужная роль
+            if (!allowedRoles.includes(user.role)) {
+                return res.status(403).json({ 
+                    message: 'У вас нет прав для выполнения этого действия' 
+                });
+            }
+            
+            req.user = { 
+                userId: user._id, 
+                role: user.role,
+                isPremium: user.isPremium 
+            };
+            next();
+        } catch (error) {
+            console.error('Auth error:', error);
+            res.status(401).json({ message: 'Неверный токен' });
+        }
+    };
+};
 // Маршруты API
 const router = express.Router();
 
