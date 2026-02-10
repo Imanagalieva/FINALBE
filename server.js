@@ -7,6 +7,102 @@ const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path'); // Добавьте этот импорт
 require('dotenv').config();
 
+// ============ EMAIL TRANSPORTER ============
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_PORT == 465,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// ============ RBAC ROLES ============
+const ROLES = {
+  PATIENT: 'patient',
+  PREMIUM_PATIENT: 'premium_patient',
+  DOCTOR: 'doctor',
+  MODERATOR: 'moderator',
+  ADMIN: 'admin'
+};
+
+// ============ EMAIL FUNCTIONS ============
+async function sendWelcomeEmail(user) {
+  try {
+    const mailOptions = {
+      from: `"MedApp Clinic" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: 'Welcome to MedApp!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Welcome to MedApp Clinic!</h2>
+          <p>Dear ${user.fullName},</p>
+          <p>Thank you for registering with MedApp. Your account has been successfully created!</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Account Details:</h3>
+            <p><strong>Username:</strong> ${user.username}</p>
+            <p><strong>Email:</strong> ${user.email}</p>
+            <p><strong>Role:</strong> ${user.role}</p>
+          </div>
+          
+          <p>You can now book appointments with our doctors.</p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Welcome email sent to:', user.email);
+  } catch (error) {
+    console.error('❌ Error sending welcome email:', error);
+  }
+}
+
+async function sendAppointmentEmail(appointment, patient, doctor) {
+  try {
+    const mailOptions = {
+      from: `"MedApp Clinic" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+      to: patient.email,
+      subject: 'Appointment Confirmation - MedApp Clinic',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Appointment Confirmed!</h2>
+          <p>Dear ${patient.fullName},</p>
+          <p>Your appointment has been successfully scheduled.</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Appointment Details:</h3>
+            <p><strong>Doctor:</strong> Dr. ${doctor.name}</p>
+            <p><strong>Specialization:</strong> ${doctor.specialization}</p>
+            <p><strong>Date & Time:</strong> ${new Date(appointment.appointmentDate).toLocaleString()}</p>
+            <p><strong>Reason:</strong> ${appointment.reason}</p>
+            <p><strong>Status:</strong> ${appointment.status}</p>
+          </div>
+          
+          <p>Please arrive 10 minutes before your scheduled time.</p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Appointment email sent to:', patient.email);
+  } catch (error) {
+    console.error('❌ Error sending appointment email:', error);
+  }
+}
 const app = express();
 const PORT = process.env.PORT || 3000;
 
