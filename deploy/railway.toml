@@ -1,0 +1,24 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 60
+restartPolicyType = "never"
+restartPolicyMaxRetries = 10
+
+[variables]
+NODE_ENV = "production"
+PORT = "3000"
+
+# ========== IMPORTANT: Set these in Railway Dashboard ==========
+# 1. MONGODB_URI - Your MongoDB Atlas connection string
+# 2. JWT_SECRET - A strong secret key (min 32 characters)
+# 3. SMTP_HOST - SMTP server (smtp.sendgrid.net, smtp.mailgun.org, etc)
+# 4. SMTP_PORT - SMTP port (587 for TLS, 465 for SSL)
+# 5. SMTP_USER - SMTP username (or "apikey" for SendGrid)
+# 6. SMTP_PASS - SMTP password or API key
+# 7. EMAIL_FROM - From email address
+# 8. CORS_ORIGIN - Frontend URL for CORS (your deployed frontend)

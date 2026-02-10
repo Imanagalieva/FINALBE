@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: medapp
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+    # Note: Set all 'sync: false' variables in Render Dashboard
+    # Required environment variables for production:
+    # - MONGODB_URI: Your MongoDB Atlas connection string
+    # - JWT_SECRET: A strong random secret (min 32 characters)
+    # - SMTP_HOST: Email service SMTP server
+    # - SMTP_PORT: Email service SMTP port (587 or 465)
+    # - SMTP_USER: Email service username
+    # - SMTP_PASS: Email service password/API key
+    # - EMAIL_FROM: Your sender email address
+    # - APP_URL: Your deployed app URL
+    # - CORS_ORIGIN: Your frontend URL
