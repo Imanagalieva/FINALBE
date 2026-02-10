@@ -210,7 +210,7 @@ router.post('/api/auth/register', async (req, res) => {
     const user = new User({ username, email, password: hashedPassword, fullName, phone, birthDate, role: 'patient' });
     await user.save();
 
-    await sendWelcomeEmail(user);
+    // await sendWelcomeEmail(user); // Disabled for speed
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '7d' });
     res.status(201).json({ message: 'Регистрация успешна', token, user: { id: user._id, username, email, fullName, role: user.role, phone, birthDate } });
@@ -240,32 +240,97 @@ router.post('/api/auth/login', async (req, res) => {
 // ================= DOCTORS ROUTES =================
 router.get('/api/doctors', async (req, res) => {
   try {
-    const doctors = await db.collection('doctors').find({}).toArray();
-    const formattedDoctors = doctors.map(doctor => ({
-      _id: doctor._id.toString(),
-      fullName: doctor.name || doctor.fullName || 'Неизвестный врач',
-      specialization: doctor.specialization || 'Не указано',
-      email: doctor.email || 'email@example.com',
-      phone: doctor.phone || '+7 (999) 999-99-99',
-      experience: doctor.experience || 0,
-      education: doctor.education || 'Не указано',
-      rating: doctor.rating || 0,
-      photo: doctor.photo || '',
-      is_available: doctor.is_available !== false,
-      description: doctor.description || '',
-      price: doctor.price || 0,
-      languages: doctor.languages || [],
-      createdAt: doctor.created_at || doctor.createdAt || new Date()
-    }));
-    res.json(formattedDoctors);
+    // Use Mongoose User model to find doctors
+    const User = mongoose.model('User', userSchema);
+    const doctors = await User.find({ role: 'doctor' }).select('-password -__v');
+    res.json(doctors);
   } catch (error) {
-    console.error('❌ Ошибка при получении врачей:', error);
-    res.status(500).json({ message: 'Ошибка сервера при получении списка врачей', error: error.message });
+    console.error('❌ Error fetching doctors:', error);
+    res.status(500).json({ message: 'Error fetching doctors', error: error.message });
+  }
+});
+
+// Get single doctor by ID
+router.get('/api/doctors/:id', async (req, res) => {
+  try {
+    const User = mongoose.model('User', userSchema);
+    const doctor = await User.findOne({ 
+      _id: req.params.id, 
+      role: 'doctor' 
+    }).select('-password -__v');
+    
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    
+    res.json(doctor);
+  } catch (error) {
+    console.error('Error fetching doctor:', error);
+    res.status(500).json({ message: 'Error fetching doctor', error: error.message });
   }
 });
 
 // ================= ADDITIONAL ROUTES =================
-// (твой код для /api/doctors/:id, /api/appointments, /api/admin/... и т.д. вставляется сюда, без лишних скобок)
+// Book appointment
+router.post('/api/appointments', async (req, res) => {
+  try {
+    const { doctorId, appointmentDate, reason, symptoms } = req.body;
+    
+    if (!doctorId || !appointmentDate || !reason) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const appointment = new Appointment({
+      doctorId,
+      patientId: new mongoose.Types.ObjectId(),
+      appointmentDate: new Date(appointmentDate),
+      reason,
+      symptoms: symptoms || [],
+      status: 'scheduled'
+    });
+
+    await appointment.save();
+    res.status(201).json({ 
+      message: 'Appointment booked successfully',
+      appointment 
+    });
+  } catch (error) {
+    console.error('Booking error:', error);
+    res.status(500).json({ message: 'Error booking appointment', error: error.message });
+  }
+});
+
+// Get all appointments
+router.get('/api/appointments', async (req, res) => {
+  try {
+    const appointments = await Appointment.find()
+      .populate('doctorId', 'fullName specialization')
+      .sort({ appointmentDate: -1 });
+    res.json(appointments);
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ message: 'Error fetching appointments', error: error.message });
+  }
+});
+
+// Delete/Cancel appointment
+router.delete('/api/appointments/:id', async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+    const result = await Appointment.findByIdAndDelete(appointmentId);
+    
+    if (!result) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    
+    res.json({ message: 'Appointment cancelled successfully', appointment: result });
+  } catch (error) {
+    console.error('Error cancelling appointment:', error);
+    res.status(500).json({ message: 'Error cancelling appointment', error: error.message });
+  }
+});
+
+// Подключаем маршруты
 
 // Подключаем маршруты
 app.use('/', router);

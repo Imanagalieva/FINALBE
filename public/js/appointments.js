@@ -157,12 +157,14 @@ async function cancelAppointment(appointmentId) {
     }
     
     try {
-        const response = await apiRequest(`/api/appointments/${appointmentId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ status: 'cancelled' })
+        const response = await fetch(`/api/appointments/${appointmentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
-        if (response && response.ok) {
+        if (response.ok) {
             showMessage('success', 'Запись отменена');
             loadAppointments();
         } else {
@@ -170,6 +172,7 @@ async function cancelAppointment(appointmentId) {
             showMessage('danger', error.message || 'Ошибка при отмене записи');
         }
     } catch (error) {
+        console.error('Error:', error);
         showMessage('danger', 'Ошибка сети');
     }
 }

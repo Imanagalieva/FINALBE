@@ -1,9 +1,9 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('./app/models/user.model');
-const Record = require('./app/models/record.model');
-const Service = require('./app/models/service.model');
+const User = require('../app/models/user.model');
+const Record = require('../app/models/record.model');
+const Service = require('../app/models/service.model');
 
 async function seedDatabase() {
   try {
@@ -120,8 +120,34 @@ async function seedDatabase() {
       specialization: 'Dermatology',
       isVerified: true
     });
+
+    const doctor4Password = await bcrypt.hash('doctor321', 10);
+    const doctor4 = await User.create({
+      username: 'drbrown',
+      email: 'dr.brown@medapp.com',
+      password: doctor4Password,
+      fullName: 'Dr. Emily Brown',
+      phone: '+1234567894',
+      birthDate: new Date('1982-06-12'),
+      role: 'doctor',
+      specialization: 'Neurology',
+      isVerified: true
+    });
+
+    const doctor5Password = await bcrypt.hash('doctor654', 10);
+    const doctor5 = await User.create({
+      username: 'drmiller',
+      email: 'dr.miller@medapp.com',
+      password: doctor5Password,
+      fullName: 'Dr. James Miller',
+      phone: '+1234567895',
+      birthDate: new Date('1980-09-08'),
+      role: 'doctor',
+      specialization: 'Therapy',
+      isVerified: true
+    });
     
-    console.log(`✅ Created ${[doctor1, doctor2, doctor3].length} doctors`);
+    console.log(`✅ Created ${[doctor1, doctor2, doctor3, doctor4, doctor5].length} doctors`);
     
     // Create patients
     console.log('\n👤 Creating patients...');
