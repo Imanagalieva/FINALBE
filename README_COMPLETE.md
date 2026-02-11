@@ -1000,40 +1000,15 @@ All emails use HTML templates with professional formatting and include:
 
 ##  Deployment
 
-### Deploying to Railway
+The application is deployed using Render.
 
-**Step 1:** Push code to GitHub
+Backend deployed on: Render
 
-```bash
-git add .
-git commit -m "Ready for deployment"
-git push origin main
-```
+Database: MongoDB Atlas
 
-**Step 2:** Create Railway project
+Environment variables configured in Render dashboard
 
-1. Sign up at [railway.app](https://railway.app)
-2. Click "New Project" → "GitHub repo"
-3. Select your repository
-
-**Step 3:** Configure environment variables in Railway Dashboard
-
-```
-NODE_ENV=production
-PORT=3000
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/medapp
-JWT_SECRET=your_production_secret_minimum_32_chars
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USER=apikey
-SMTP_PASS=SG.your_api_key
-EMAIL_FROM=noreply@yourdomain.com
-CORS_ORIGIN=https://your-frontend-url.com
-```
-
-**Step 4:** Deploy
-
-Railway automatically deploys on push to main branch.
+live URL: medapp-1-cn65.onrender.com/dashboard
 
 ### Health Check
 
@@ -1046,7 +1021,9 @@ curl https://your-app.up.railway.app/api/health
 ##  Screenshots
 
 ### 1. Home Page
-Shows welcome screen with login/register options and featured services.
+S<img width="1920" height="1080" alt="изображение" src="https://github.com/user-attachments/assets/e13c995e-f281-47ed-86f2-79500150e46c" />
+
+
 
 ### 2. Registration Page
 User registration form with validation for:
