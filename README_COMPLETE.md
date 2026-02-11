@@ -1,10 +1,10 @@
-# 🏥 MedApp - Medical Appointment System
+#  MedApp - Medical Appointment System
 
 **A comprehensive medical appointment management system** built with Node.js, Express, MongoDB, and vanilla JavaScript.
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 1. [Features](#features)
 2. [Project Overview](#project-overview)
@@ -21,19 +21,19 @@
 
 ---
 
-## ✨ Features
+##  Features
 
 ### Core Features
-- ✅ **User Authentication**: Secure registration and login with JWT tokens
-- ✅ **Role-Based Access Control**: Patient, Premium Patient, Doctor, Moderator, Admin roles
-- ✅ **Appointment Management**: Book, view, update, and cancel appointments
-- ✅ **Medical Records**: Doctors can create and manage patient medical records
-- ✅ **Doctor Profiles**: Browse doctors by specialization and manage profiles
-- ✅ **Medical Services**: Manage various medical services and pricing
-- ✅ **Email Notifications**: Automated emails for registrations and appointments
-- ✅ **Secure Password Hashing**: bcryptjs for password security
-- ✅ **Input Validation**: Request validation with express-validator
-- ✅ **Error Handling**: Comprehensive error handling middleware
+-  **User Authentication**: Secure registration and login with JWT tokens
+-  **Role-Based Access Control**: Patient, Premium Patient, Doctor, Moderator, Admin roles
+-  **Appointment Management**: Book, view, update, and cancel appointments
+-  **Medical Records**: Doctors can create and manage patient medical records
+-  **Doctor Profiles**: Browse doctors by specialization and manage profiles
+-  **Medical Services**: Manage various medical services and pricing
+-  **Email Notifications**: Automated emails for registrations and appointments
+-  **Secure Password Hashing**: bcryptjs for password security
+-  **Input Validation**: Request validation with express-validator
+-  **Error Handling**: Comprehensive error handling middleware
 
 ### User Roles & Permissions
 
@@ -47,7 +47,7 @@
 
 ---
 
-## 🎯 Project Overview
+##  Project Overview
 
 **MedApp** is a full-stack medical appointment system that connects patients with doctors for healthcare services. It provides:
 
@@ -59,7 +59,7 @@ The system ensures secure data handling through JWT authentication, role-based a
 
 ---
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 ### Backend
 - **Runtime**: Node.js 16+
@@ -85,7 +85,7 @@ The system ensures secure data handling through JWT authentication, role-based a
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 medapp/
@@ -154,7 +154,7 @@ medapp/
 
 ---
 
-## 🚀 Setup Instructions
+##  Setup Instructions
 
 ### Prerequisites
 - **Node.js**: v16.0.0 or higher
@@ -241,7 +241,7 @@ npm run seed:reset
 
 ---
 
-## 📡 API Documentation
+##  API Documentation
 
 ### Base URL
 - **Development**: `http://localhost:3000/api`
@@ -270,7 +270,7 @@ Error responses:
 
 ---
 
-## 🔐 Authentication Endpoints (Public)
+##  Authentication Endpoints (Public)
 
 ### 1. Register User
 **POST** `/auth/register`
@@ -498,7 +498,7 @@ Content-Type: application/json
 
 ---
 
-## 📅 Appointment Management Endpoints (Protected)
+##  Appointment Management Endpoints (Protected)
 
 ### 8. Create Appointment
 **POST** `/appointments`
@@ -694,7 +694,7 @@ Authorization: Bearer <patient_or_admin_token>
 
 ---
 
-## 🏥 Doctor Endpoints (Protected)
+##  Doctor Endpoints (Protected)
 
 ### 13. Get All Doctors
 **GET** `/doctors`
@@ -761,7 +761,7 @@ Authorization: Bearer <token>
 
 ---
 
-## 🔬 Medical Services Endpoints
+##  Medical Services Endpoints
 
 ### 15. Get All Services
 **GET** `/services`
@@ -889,7 +889,7 @@ Authorization: Bearer <admin_token>
 
 ---
 
-## 🔐 Authentication & Security
+##  Authentication & Security
 
 ### JWT Token Usage
 
@@ -913,18 +913,18 @@ _signature_here_
 
 ### Security Features
 
-✅ **Password Hashing**: bcryptjs with salt rounds 10  
-✅ **JWT Expiration**: 7 days by default (configurable)  
-✅ **HTTPS**: Enforced in production  
-✅ **CORS**: Configured for frontend domain  
-✅ **Helmet.js**: HTTP security headers  
-✅ **Input Validation**: express-validator middleware  
-✅ **SQL Injection Prevention**: Using Mongoose ORM  
-✅ **Environment Variables**: Secrets never in code  
+ **Password Hashing**: bcryptjs with salt rounds 10  
+ **JWT Expiration**: 7 days by default (configurable)  
+ **HTTPS**: Enforced in production  
+ **CORS**: Configured for frontend domain  
+ **Helmet.js**: HTTP security headers  
+ **Input Validation**: express-validator middleware  
+ **SQL Injection Prevention**: Using Mongoose ORM  
+ **Environment Variables**: Secrets never in code  
 
 ---
 
-## 👥 Role-Based Access Control (RBAC)
+##  Role-Based Access Control (RBAC)
 
 ### Permission Matrix
 
@@ -961,7 +961,7 @@ router.get('/profile', auth, getProfile);
 
 ---
 
-## 📧 Email Service Integration
+##  Email Service Integration
 
 ### Supported Providers
 
@@ -998,7 +998,7 @@ All emails use HTML templates with professional formatting and include:
 
 ---
 
-## 🚀 Deployment
+##  Deployment
 
 ### Deploying to Railway
 
@@ -1043,7 +1043,7 @@ curl https://your-app.up.railway.app/api/health
 
 ---
 
-## 📸 Screenshots
+##  Screenshots
 
 ### 1. Home Page
 Shows welcome screen with login/register options and featured services.
@@ -1110,7 +1110,7 @@ Administrative dashboard with:
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Email Not Sending
 
@@ -1170,7 +1170,7 @@ PORT=3001 npm start
 
 ---
 
-## 📚 Additional Documentation
+##  Additional Documentation
 
 - **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete deployment and environment setup
 - **[QUICK_START.md](./QUICK_START.md)** - Quick start in 5 minutes
@@ -1179,19 +1179,19 @@ PORT=3001 npm start
 
 ---
 
-## 📝 License
+##  License
 
 This project is licensed under the ISC License - see `package.json` for details.
 
 ---
 
-## 👥 Contributing
+##  Contributing
 
 This is a project for educational purposes. For questions or improvements, please open an issue or contact the development team.
 
 ---
 
-## 📞 Support
+##  Support
 
 For issues or questions:
 1. Check this README and documentation files
@@ -1205,4 +1205,4 @@ For issues or questions:
 
 **Project Version:** 1.0.0
 
-**Status:** Production Ready ✅
+**Status:** Production Ready 
