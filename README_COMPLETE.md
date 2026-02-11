@@ -928,19 +928,16 @@ _signature_here_
 
 ### Permission Matrix
 
-| Permission | Patient | Premium | Doctor | Moderator | Admin |
-|-----------|---------|---------|--------|-----------|-------|
-| View own profile | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Update own profile | ✓ | ✓ | ✓ | ✓ | ✓ |
-| View all users | ✗ | ✗ | ✗ | ✓ | ✓ |
-| Create appointment | ✓ | ✓ | ✗ | ✗ | ✓ |
-| View own appointments | ✓ | ✓ | ✓* | ✗ | ✓ |
-| View medical records | ✗ | ✓ | ✓* | ✗ | ✓ |
-| Create medical records | ✗ | ✗ | ✓ | ✗ | ✓ |
-| Manage users | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Delete users | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Moderate content | ✗ | ✗ | ✗ | ✓ | ✓ |
-| Ban users | ✗ | ✗ | ✗ | ✓ | ✓ |
+| Permission | Patient | Doctor |
+|-----------|---------|--------|
+| View own profile | ✓ | ✓ |
+| Update own profile | ✓ | ✓ |
+| View all users | ✗ | ✗ |
+| Create appointment | ✓ | ✗ |
+| View own appointments | ✓ | ✓* |
+| View medical records | ✗ | ✓* |
+| Create medical records | ✗ | ✓ |
+
 
 *Doctors see only their own appointments and patients
 
@@ -1032,8 +1029,12 @@ User registration form with validation for:
 - Age verification (18+)
 - Username uniqueness
 
+<img width="1920" height="1080" alt="изображение" src="https://github.com/user-attachments/assets/fa161606-cba7-458e-9cce-b43e6751f1d7" />
+
+
 ### 3. Login Page
 Secure login with email and password authentication.
+![Uploading изображение.png…]()
 
 ### 4. Dashboard
 User dashboard showing:
